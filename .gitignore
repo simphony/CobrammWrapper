@@ -1,0 +1,12 @@
+__pycache__/
+build/
+dist/
+*~*
+.vscode/
+.mypy_cache/
+coverage.xml
+.coverage
+
+## User defined
+simdome_simple_wrapper.egg-info/
+*.mp4
