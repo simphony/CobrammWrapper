@@ -1,3 +1,2 @@
-from osp.wrappers.simdome.simulation_engine import SimulationEngine
-from osp.wrappers.simdome.simdome_simple_session import SimDomeSimpleSession
-from osp.wrappers.simdome.simdome_simulation_session import SimDomeSimulationSession
+from osp.wrappers.cobrammwrapper.simulation_engine import CobrammSimulationEngine
+from osp.wrappers.cobrammwrapper.cobramm_session import CobrammSession
