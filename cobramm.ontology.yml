@@ -1,0 +1,88 @@
+---
+version: "0.0.1"
+namespace: "COBRAMM"
+author: "Matteo Bonfanti"
+
+ontology:
+
+  ################
+
+  ENCLOSES:
+    subclass_of:
+    - CUBA.ACTIVE_RELATIONSHIP
+    inverse: COBRAMM.IS_ENCLOSED_BY
+
+  IS_ENCLOSED_BY:
+    subclass_of:
+    - CUBA.PASSIVE_RELATIONSHIP
+    inverse: COBRAMM.ENCLOSES
+
+  HAS_PART:
+    subclass_of:
+    - COBRAMM.ENCLOSES
+    inverse: COBRAMM.IS_PART_OF
+    default_rel: true
+
+  IS_PART_OF:
+    subclass_of:
+    - COBRAMM.IS_ENCLOSED_BY
+    inverse: COBRAMM.HAS_PART
+
+  ##############
+
+  WRAPPER:
+    subclass_of:
+    - CUBA.WRAPPER
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.MATERIAL
+        exclusive: true
+        cardinality: some
+
+  MATERIAL:
+    subclass_of:
+    - CUBA.ENTITY
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.ATOM
+        exclusive: true
+        cardinality: some
+
+  ATOM:
+    subclass_of:
+    - CUBA.ENTITY
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.POSITION
+        exclusive: false
+        cardinality: some
+
+  PHYSICAL_VECTOR_QUANTITY:
+    subclass_of:
+    - CUBA.ENTITY
+    attributes:
+      COBRAMM.VECTOR_VALUE:
+      COBRAMM.UNIT:
+
+  PHYSICAL_SCALAR_QUANTITY:
+    subclass_of:
+    - CUBA.ENTITY
+    attributes:
+      COBRAMM.SCALAR_VALUE:
+      COBRAMM.UNIT:
+
+  VECTOR_VALUE:
+    subclass_of:
+    - CUBA.ATTRIBUTE
+    datatype: VECTOR:3
+
+  SCALAR_VALUE:
+    subclass_of:
+    - CUBA.ATTRIBUTE
+    datatype: VECTOR:1
+
+  UNIT:
+    subclass_of:
+    - CUBA.ATTRIBUTE
+    datatype: STRING
+
+  POSITION:
+    subclass_of:
+    - COBRAMM.PHYSICAL_VECTOR_QUANTITY
