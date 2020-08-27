@@ -6,6 +6,7 @@ dist/
 .mypy_cache/
 coverage.xml
 .coverage
+*.egg-info/
 
 ## User defined
 simdome_simple_wrapper.egg-info/
