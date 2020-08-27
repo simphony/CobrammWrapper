@@ -1,5 +1,5 @@
 ---
-version: "0.0.1"
+version: "0.0.2"
 namespace: "COBRAMM"
 author: "Matteo Bonfanti"
 
@@ -45,6 +45,18 @@ ontology:
         range: COBRAMM.ATOM
         exclusive: true
         cardinality: some
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.SOLVENT
+        exclusive: true
+        cardinality: 1
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.TEMPERATURE
+        exclusive: true
+        cardinality: 1
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.PRESSURE
+        exclusive: true
+        cardinality: 1
 
   ATOM:
     subclass_of:
@@ -53,6 +65,28 @@ ontology:
         range: COBRAMM.POSITION
         exclusive: false
         cardinality: some
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.ELEMENT_ID
+        exclusive: false
+        cardinality: 1
+
+  POSITION:
+    subclass_of:
+    - COBRAMM.PHYSICAL_VECTOR_QUANTITY
+
+  SOLVENT:
+    subclass_of:
+    - COBRAMM.MOLECULE
+
+  TEMPERATURE:
+    subclass_of:
+    - COBRAMM.PHYSICAL_SCALAR_QUANTITY
+
+  PRESSURE:
+    subclass_of:
+    - COBRAMM.PHYSICAL_SCALAR_QUANTITY
+
+  ##############
 
   PHYSICAL_VECTOR_QUANTITY:
     subclass_of:
@@ -68,6 +102,20 @@ ontology:
       COBRAMM.SCALAR_VALUE:
       COBRAMM.UNIT:
 
+  MOLECULE:
+    subclass_of:
+      - CUBA.ENTITY
+    attributes:
+      COBRAMM.COMMERCIAL_NAME:
+
+  ELEMENT_ID:
+    subclass_of:
+      - CUBA.ENTITY
+    attributes:
+      COBRAMM.ATOM_SYMBOL:
+
+  ##############
+
   VECTOR_VALUE:
     subclass_of:
     - CUBA.ATTRIBUTE
@@ -76,13 +124,19 @@ ontology:
   SCALAR_VALUE:
     subclass_of:
     - CUBA.ATTRIBUTE
-    datatype: VECTOR:1
+    datatype: FLOAT
 
   UNIT:
     subclass_of:
     - CUBA.ATTRIBUTE
     datatype: STRING
 
-  POSITION:
+  ATOM_SYMBOL:
     subclass_of:
-    - COBRAMM.PHYSICAL_VECTOR_QUANTITY
+    - CUBA.ATTRIBUTE
+    datatype: STRING
+
+  COMMERCIAL_NAME:
+    subclass_of:
+    - CUBA.ATTRIBUTE
+    datatype: STRING
