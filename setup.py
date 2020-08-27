@@ -17,6 +17,9 @@ setup(
     long_description=README_TEXT,
     install_requires=[
         'osp-core>=' + OSP_CORE_MIN + ', <' + OSP_CORE_MAX,
+        'numpy',
+        'scipy',
+        'matplotlib',
     ],
     packages=find_packages(),
     test_suite='tests',
