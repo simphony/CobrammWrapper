@@ -1,5 +1,5 @@
 ---
-version: "0.0.2"
+version: "0.0.3"
 namespace: "COBRAMM"
 author: "Matteo Bonfanti"
 
@@ -35,7 +35,7 @@ ontology:
     - CUBA.WRAPPER
     - COBRAMM.HAS_PART:
         range: COBRAMM.MATERIAL
-        exclusive: true
+        exclusive: false
         cardinality: some
 
   MATERIAL:
@@ -43,20 +43,24 @@ ontology:
     - CUBA.ENTITY
     - COBRAMM.HAS_PART:
         range: COBRAMM.ATOM
-        exclusive: true
+        exclusive: false
         cardinality: some
     - COBRAMM.HAS_PART:
         range: COBRAMM.SOLVENT
-        exclusive: true
+        exclusive: false
         cardinality: 1
     - COBRAMM.HAS_PART:
         range: COBRAMM.TEMPERATURE
-        exclusive: true
+        exclusive: false
         cardinality: 1
     - COBRAMM.HAS_PART:
         range: COBRAMM.PRESSURE
-        exclusive: true
+        exclusive: false
         cardinality: 1
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.SPECTRUM
+        exclusive: false
+        cardinality: many
 
   ATOM:
     subclass_of:
@@ -83,6 +87,34 @@ ontology:
     - COBRAMM.PHYSICAL_SCALAR_QUANTITY
 
   PRESSURE:
+    subclass_of:
+    - COBRAMM.PHYSICAL_SCALAR_QUANTITY
+
+  SPECTRUM:
+    subclass_of:
+    - CUBA.ENTITY
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.ABSORPTION_VALUE
+        exclusive: false
+        cardinality: some
+
+  ABSORPTION_VALUE:
+    subclass_of:
+    - CUBA.ENTITY
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.INTENSITY
+        exclusive: false
+        cardinality: 1
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.WAVELENGTH
+        exclusive: false
+        cardinality: 1
+
+  INTENSITY:
+    subclass_of:
+    - COBRAMM.PHYSICAL_SCALAR_QUANTITY
+
+  WAVELENGTH:
     subclass_of:
     - COBRAMM.PHYSICAL_SCALAR_QUANTITY
 
