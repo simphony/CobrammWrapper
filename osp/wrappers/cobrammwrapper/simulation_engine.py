@@ -11,7 +11,8 @@ except KeyError:
                        'export COBRAM_PATH=/path/to/COBRAMM')
 
 from amberCalculator import AmberCalculator, AmberInput
-# from cobrammCalculator import CobrammCalculator, CobrammInput
+from cobrammCalculator import CobrammCalculator, CobrammInput
+import constants
 
 
 class CobrammSimulationEngine:
@@ -29,6 +30,9 @@ class CobrammSimulationEngine:
         self.input_setup = {}
         # define integer values to set the requested accuracy of the calculation (1, 2 or 3, increasing accuracy)
         self.accuracy = 1
+
+        # initialize attributes to store the spectral results of the simulation
+        self.grid, self.spectrum = [], []
 
         # initialize Amber wrapper class
         AmberCalculator()
@@ -59,9 +63,6 @@ class CobrammSimulationEngine:
         """Call the run command of the engine."""
         print("Now COBRAMM is running")
 
-        # TODO: add here the calls to COBRAMM to execute the
-        #  spectroscopy simulation workflow
-
         # extract lists of atomic labels and coordinates
         atomlabels, atomcoords = [], []
         for lab, crd in self.atoms.values():
@@ -73,27 +74,35 @@ class CobrammSimulationEngine:
         prs = self.input_setup["pressure"]
 
         # define common parameters that are required to run the simulation
-        # gs_functional = "b3lyp"
-        # td_functional = "cam-b3lyp"
+        qm_basis = "sto-3g"
+        gs_functional = "b3lyp"
+        td_functional = "cam-b3lyp"
+        qmmm_opt_maxsteps = 50
 
         # define additional parameters based on the required accuracy
         if self.accuracy == 1:
             boxsize = 9.   # size of the MD simulation box, in Ang
-            cutoff = 5.  # cutoff for potential evaluation in the MD simulations
+            cutoff = 5.  # cutoff for potential evaluation in the MD simulations, in Ang
+            solvradius = 7.  # size of the solvent droplet cut from the MD simulation box, in Ang
+            mradius = 5.  # radius of the mobile layer in the QM/MM scheme, in Ang
             optsteps = 100  # number of initial optimization step in the MD equilibration
             timestep = 0.002  # time step of the MD run (in ps)
             heatingtime = 5.  # time (in ps) of the thermalization step
             equiltime = 25.  # time (in ps) of the final equilibration step
         elif self.accuracy == 2:
             boxsize = 11.   # size of the MD simulation box, in Ang
-            cutoff = 7.  # cutoff for potential evaluation in the MD simulations
+            cutoff = 7.  # cutoff for potential evaluation in the MD simulations, in Ang
+            solvradius = 9.  # size of the solvent droplet cut from the MD simulation box, in Ang
+            mradius = 7.  # radius of the mobile layer in the QM/MM scheme, in Ang
             optsteps = 500  # number of initial optimization step in the MD equilibration
             timestep = 0.002  # time step of the MD run (in ps)
             heatingtime = 10.  # time (in ps) of the thermalization step
             equiltime = 50.  # time (in ps) of the final equilibration step
         else:
             boxsize = 13.   # size of the MD simulation box, in Ang
-            cutoff = 9.  # cutoff for potential evaluation in the MD simulations
+            cutoff = 9.  # cutoff for potential evaluation in the MD simulations, in Ang
+            solvradius = 11.  # size of the solvent droplet cut from the MD simulation box, in Ang
+            mradius = 9.  # radius of the mobile layer in the QM/MM scheme, in Ang
             optsteps = 1000  # number of initial optimization step in the MD equilibration
             timestep = 0.002  # time step of the MD run (in ps)
             heatingtime = 20.  # time (in ps) of the thermalization step
@@ -108,13 +117,13 @@ class CobrammSimulationEngine:
         _CALC02_PLOT = "thermalization.pdf"
         _CALC03_PLOT = "equilibration.pdf"
         
-        print("\nCreate AMBER topology and coordinates for a molecule in a box of solvent\n")
+        print("\n * Create AMBER topology and coordinates for a molecule in a box of solvent")
 
         # create a random box of solvent with AMBER topology and parameters
         init_snap, topology = AmberCalculator.createSolvatedMolecule(atomlabels, atomcoords, solvsize=boxsize,
                                                                      solvent=solv)
 
-        print("\nGeometry optimization at the MM level, {} steps\n".format(optsteps))
+        print("\n * Geometry optimization at the MM level, {} steps".format(optsteps))
 
         # define whether PBC are defined
         coord_has_pbc = init_snap.unitcell is not None
@@ -127,12 +136,12 @@ class CobrammSimulationEngine:
 
         # analysis of the optimization
         output01.optimizationPlot(_CALC01_PLOT)
-        print("Plot of the energy optimization written to file {0}\n\n".format(_CALC01_PLOT))
+        print("   Plot of the energy optimization written to file {0}".format(_CALC01_PLOT))
 
         # extract optimized geometry
         opt_snap = output01.snapshot(-1)
 
-        print("Heating the system at {0} K for {1} ps".format(temp, heatingtime))
+        print("\n * Heating the system at {0} K for {1} ps".format(temp, heatingtime))
 
         # prepare the input for the heating
         nr_steps = int(heatingtime / timestep)
@@ -145,13 +154,12 @@ class CobrammSimulationEngine:
 
         # analysis of the optimization
         output02.dynamicsPlot(_CALC02_PLOT)
-        print("Plot of the thermalization dynamics written to file {0}\n\n".format(_CALC02_PLOT))
+        print("   Plot of the thermalization dynamics written to file {0}".format(_CALC02_PLOT))
 
         # extract thermalized geometry
         thermal_snap = output02.snapshot(-1)
 
-        print("Equilibrating the system at {0} K and {1} bar for {2} ps\n".format(temp, prs, equiltime))
-        print("files are stored in the directory {0}".format(_CALC03_DIR))
+        print("\n * Equilibrating the system at {0} K and {1} bar for {2} ps".format(temp, prs, equiltime))
 
         # prepare the input for the heating
         nr_steps = int(equiltime / timestep)
@@ -164,42 +172,60 @@ class CobrammSimulationEngine:
 
         # analysis of the optimization
         output03.dynamicsPlot(_CALC03_PLOT)
-        print("Plot of the equilibration dynamics written to file {0}\n\n".format(_CALC03_PLOT))
+        print("   Plot of the equilibration dynamics written to file {0}".format(_CALC03_PLOT))
 
         # extract final equilibration geometry and write it to file
         equil_snap = output02.snapshot(-1)
 
-        # # use AmberCalculator to create the Amber snapshot and topology objects that represent
-        # # a molecule surrounded by a solvent droplet of radius give by the argument spherRad
-        # droplet_snap, droplet_topo = AmberCalculator.cutdroplet(topology, equil_snap, spherRad=solvradius)
-        #
-        # # now we can create input for COBRAMM with the qmmmLayers method of CobrammCalculator
-        # geometry, modelh_topo, real_topo = CobrammCalculator.qmmmLayers(
-        #     droplet_snap, droplet_topo, mobileThreshold=mradius, reorderRes=True)
-        #
-        # # define cobram.command for a ground state optimization with DFT
-        # cobcomm = CobrammInput(calc_type="optxg", qm_basis=qmbasis, qm_functional=qmfunctional, nr_steps=7)
-        #
-        # # run the cobramm optimization and extract the optimized geometry
-        # optresult = CobrammCalculator.run(cobcomm, geometry, modelh_topo, real_topo,
-        #                                   calc_dir="optimization", store=True)
-        # opt_geometry = optresult.snapshot(-1)
-        #
-        # # # define cobram.command for a single point calculation, with TD-DFT and 5 electronic states
-        # cobcomm = CobrammInput(n_el_states=5, qm_basis=qmbasis, qm_functional=qmfunctional)
-        #
-        # # run the cobramm optimization and extract the optimized geometry
-        # tddftresult = CobrammCalculator.run(cobcomm, opt_geometry, modelh_topo, real_topo,
-        #                                     calc_dir="tddft", store=True)
-        #
-        # # now process the electronic state results to print the spectrum
-        # grid = np.linspace(0., 0.5, 200)
-        # spect = tddftresult.eletronicspectrum(grid)
+        print("\n * Extracting a droplet of solvent of radius {0} Ang\n"
+              "   with mobile molecules within {1} Ang from the chromophore".format(solvradius, mradius))
+
+        # use AmberCalculator to create the Amber snapshot and topology objects that represent
+        # a molecule surrounded by a solvent droplet of radius give by the argument spherRad
+        droplet_snap, droplet_topo = AmberCalculator.cutdroplet(topology, equil_snap, spherRad=solvradius)
+
+        # now we can create input for COBRAMM with the qmmmLayers method of CobrammCalculator
+        geometry, modelh_topo, real_topo = CobrammCalculator.qmmmLayers(
+            droplet_snap, droplet_topo, mobileThreshold=mradius, reorderRes=True)
+
+        print("\n * Geometry optimization at the QM/MM level, max {} steps".format(qmmm_opt_maxsteps))
+
+        # define cobram.command for a ground state optimization with DFT
+        cobcomm = CobrammInput(calc_type="optxg", qm_basis=qm_basis, qm_functional=gs_functional,
+                               nr_steps=qmmm_opt_maxsteps)
+
+        # run the cobramm optimization and extract the optimized geometry
+        optresult = CobrammCalculator.run(cobcomm, geometry, modelh_topo, real_topo,
+                                          calc_dir="optimization", store=True)
+        opt_geometry = optresult.snapshot(-1)
+
+        print("\n * Computing electronic transitions for the optimized geometry\n"
+              "   and computing the electronic spectrum by gaussian convolution ")
+
+        # # define cobram.command for a single point calculation, with TD-DFT and 5 electronic states
+        cobcomm = CobrammInput(n_el_states=5, qm_basis=qm_basis, qm_functional=td_functional)
+
+        # run the cobramm optimization and extract the optimized geometry
+        tddftresult = CobrammCalculator.run(cobcomm, opt_geometry, modelh_topo, real_topo,
+                                            calc_dir="tddft", store=True)
+
+        # now process the electronic state results to get the spectrum as a function of the energy
+        grid_e = np.linspace(0.1 / constants.Hartree2eV, 20. / constants.Hartree2eV, 1000)
+        spectrum_e = tddftresult.eletronicspectrum(grid_e, width=0.1 / constants.Hartree2eV)
+
+        # convert the spectrum to wavelength and store the results
+        for en, ints_e in zip(grid_e, spectrum_e):
+            wavelength = 10000000. / (en / constants.wavnr2au)
+            self.grid.append(wavelength)
+            self.spectrum.append(ints_e / wavelength**2)
+
+        print("\nCOBRAMM run has been completed!")
 
         # COBRAMM has been executed
         self.executed = True
 
-    def get_position(self, uid):
+    def get_spectrum(self):
         if self.executed:
-            return np.array([-42, -42, -42])
-        print("Get position of atom {0}".format(uid))
+            return self.grid, self.spectrum
+        else:
+            return None
