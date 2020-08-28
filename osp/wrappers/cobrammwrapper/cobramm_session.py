@@ -27,12 +27,22 @@ class CobrammSession(SimWrapperSession):
             if uid in self._registry:
                 obj = self._registry.get(uid)
 
-                # check if position has been updated
-                if obj.is_a(cobramm.position):
-                    atom = obj.get(rel=cobramm.is_part_of)[0]
-                    pos = self._engine.get_position(atom.uid)
-                    if pos is not None:
-                        obj.vector_value = pos
+                if obj.is_a(cobramm.material):
+                    spc = self._engine.get_spectrum()
+                    if spc is not None:
+                        obj.add(cobramm.spectrum())
+
+                if obj.is_a(cobramm.spectrum):
+                    spc = self._engine.get_spectrum()
+                    if spc is not None:
+                        # first delete previous spectrum possibly stored
+                        if obj.get(oclass=cobramm.absorption_value):
+                            obj.remove(oclass=cobramm.absorption_value)
+                        # and add the new values
+                        for wav, ints in zip(*spc):
+                            value = obj.add(cobramm.absorption_value())
+                            value.add(cobramm.intensity(scalar_value=ints, unit="arbitrary"))
+                            value.add(cobramm.wavelength(scalar_value=wav, unit="nm"))
 
                 yield obj
             else:
@@ -102,6 +112,4 @@ class CobrammSession(SimWrapperSession):
         Args:
             root_obj (Cuds): The wrapper cuds object.
         """
-        # TODO: Is there any initialisation required in the engine
-        #  before the run method is called?
-        # This method is optional, it is not always necessary
+        pass
