@@ -1,6 +1,7 @@
 import numpy as np
 import sys
 import os
+import copy
 
 # add $COBRAM_PATH/cobramm directory to import COBRAMM modules
 try:
@@ -13,7 +14,8 @@ except KeyError:
 from amberCalculator import AmberCalculator, AmberInput
 from cobrammCalculator import CobrammCalculator, CobrammInput
 import constants
-
+from layers import Layers
+from harmonicSampling import HarmonicSampling
 
 class CobrammSimulationEngine:
     """
@@ -78,6 +80,7 @@ class CobrammSimulationEngine:
         gs_functional = "b3lyp"
         td_functional = "cam-b3lyp"
         qmmm_opt_maxsteps = 50
+        sampling_type = "wigner"
 
         # define additional parameters based on the required accuracy
         if self.accuracy == 1:
@@ -89,6 +92,7 @@ class CobrammSimulationEngine:
             timestep = 0.002  # time step of the MD run (in ps)
             heatingtime = 5.  # time (in ps) of the thermalization step
             equiltime = 25.  # time (in ps) of the final equilibration step
+            nsamples = 10  # number of samples of the wigner sampling
         elif self.accuracy == 2:
             boxsize = 11.   # size of the MD simulation box, in Ang
             cutoff = 7.  # cutoff for potential evaluation in the MD simulations, in Ang
@@ -98,6 +102,7 @@ class CobrammSimulationEngine:
             timestep = 0.002  # time step of the MD run (in ps)
             heatingtime = 10.  # time (in ps) of the thermalization step
             equiltime = 50.  # time (in ps) of the final equilibration step
+            nsamples = 20  # number of samples of the wigner sampling
         else:
             boxsize = 13.   # size of the MD simulation box, in Ang
             cutoff = 9.  # cutoff for potential evaluation in the MD simulations, in Ang
@@ -107,6 +112,7 @@ class CobrammSimulationEngine:
             timestep = 0.002  # time step of the MD run (in ps)
             heatingtime = 20.  # time (in ps) of the thermalization step
             equiltime = 100.  # time (in ps) of the final equilibration step
+            nsamples = 100  # number of samples of the wigner sampling
 
         # directories where to run AMBER calculations
         _CALC01_DIR = "01_opt"
@@ -116,7 +122,12 @@ class CobrammSimulationEngine:
         _CALC01_PLOT = "optimization.pdf"
         _CALC02_PLOT = "thermalization.pdf"
         _CALC03_PLOT = "equilibration.pdf"
-        
+
+        heatingtime = 1.  # time (in ps) of the thermalization step
+        equiltime = 1.  # time (in ps) of the final equilibration step
+        qmmm_opt_maxsteps = 5
+        nsamples = 5
+
         print("\n * Create AMBER topology and coordinates for a molecule in a box of solvent")
 
         # create a random box of solvent with AMBER topology and parameters
@@ -185,7 +196,7 @@ class CobrammSimulationEngine:
         droplet_snap, droplet_topo = AmberCalculator.cutdroplet(topology, equil_snap, spherRad=solvradius)
 
         # now we can create input for COBRAMM with the qmmmLayers method of CobrammCalculator
-        geometry, modelh_topo, real_topo = CobrammCalculator.qmmmLayers(
+        inp_geometry, modelh_topo, real_topo = CobrammCalculator.qmmmLayers(
             droplet_snap, droplet_topo, mobileThreshold=mradius, reorderRes=True)
 
         print("\n * Geometry optimization at the QM/MM level, max {} steps".format(qmmm_opt_maxsteps))
@@ -195,29 +206,109 @@ class CobrammSimulationEngine:
                                nr_steps=qmmm_opt_maxsteps)
 
         # run the cobramm optimization and extract the optimized geometry
-        optresult = CobrammCalculator.run(cobcomm, geometry, modelh_topo, real_topo,
+        optresult = CobrammCalculator.run(cobcomm, inp_geometry, modelh_topo, real_topo,
                                           calc_dir="optimization", store=True)
         opt_geometry = optresult.snapshot(-1)
 
-        print("\n * Computing electronic transitions for the optimized geometry\n"
-              "   and computing the electronic spectrum by gaussian convolution ")
+        grid_e, spectrum_e = None, None
+        if sampling_type == "vertical":
 
-        # # define cobram.command for a single point calculation, with TD-DFT and 5 electronic states
-        cobcomm = CobrammInput(n_el_states=5, qm_basis=qm_basis, qm_functional=td_functional)
+            print("\n * Computing electronic transitions for the optimized geometry\n"
+                  "   and computing the electronic spectrum by gaussian convolution ")
 
-        # run the cobramm optimization and extract the optimized geometry
-        tddftresult = CobrammCalculator.run(cobcomm, opt_geometry, modelh_topo, real_topo,
-                                            calc_dir="tddft", store=True)
+            # # define cobram.command for a single point calculation, with TD-DFT and 5 electronic states
+            cobcomm = CobrammInput(n_el_states=5, qm_basis=qm_basis, qm_functional=td_functional)
 
-        # now process the electronic state results to get the spectrum as a function of the energy
-        grid_e = np.linspace(0.1 / constants.Hartree2eV, 20. / constants.Hartree2eV, 1000)
-        spectrum_e = tddftresult.eletronicspectrum(grid_e, width=0.1 / constants.Hartree2eV)
+            # run the cobramm optimization and extract the optimized geometry
+            tddftresult = CobrammCalculator.run(cobcomm, opt_geometry, modelh_topo, real_topo,
+                                                calc_dir="tddft", store=True)
+
+            # now process the electronic state results to get the spectrum as a function of the energy
+            grid_e = np.linspace(0.1 / constants.Hartree2eV, 20. / constants.Hartree2eV, 1000)
+            spectrum_e = tddftresult.eletronicspectrum(grid_e, width=0.1 / constants.Hartree2eV)
+
+        elif sampling_type == "wigner":
+
+            # normal mode computation for the wigner sampling
+            print("\n * Computing the normal modes of the molecule at the optimized geometry")
+
+            # redefine M layer as L layer, to freeze atoms in freq calculation
+            standard_text = opt_geometry.reallayertext
+            modified_text = ""
+            for line in standard_text.splitlines():
+                if line.split()[5] == "M":
+                    modified_text += line.replace(" M", " L") + "\n"
+                else:
+                    modified_text += line + "\n"
+            frozen_mlayer = Layers.from_real_layers_xyz(modified_text)
+
+            # define cobram.command for a ground state frequency calculation
+            cobcomm = CobrammInput(calc_type="freqxg", qm_basis=qm_basis, qm_functional=gs_functional)
+
+            # run COBRAMM
+            freqresults = CobrammCalculator.run(cobcomm, frozen_mlayer, modelh_topo, real_topo,
+                                                calc_dir="frequencies", store=True)
+
+            print("\n * Computing electronic transitions for the a set of {} sample geometries\n"
+                  "   according to a Wigner sampling of the harmonic vibrational wavefunction".format(nsamples))
+
+            # extract equilibrium geometry and format as a simple 1D vector of 3N elements
+            geomvector = []
+            for x, y, z in zip(*frozen_mlayer.model):
+                geomvector.append(x), geomvector.append(y), geomvector.append(z)
+            # define harmonic sampling of the molecular oscillations
+            mol_oscillator = HarmonicSampling(geomvector, freqresults.coord_masses, freqresults.force_matrix, temp)
+
+            # define directory where to store displaced geometries
+            displ_dir = "sampling"
+            # check the existence of the directory where to store samples, in case create the directory
+            if not os.path.isdir(displ_dir):
+                os.mkdir(displ_dir)
+
+            # now randomly generate snapshots for subsequent calculations
+            displ_geometries = []
+            for i_geom in range(nsamples):
+                # get sample of the wigner distribution
+                newgeomvector = mol_oscillator.get_sample()
+                # create a new Layers object to store the new snapshot, move the H layer and store the snapshot
+                new_geometry = Layers.from_real_layers_xyz(opt_geometry.reallayertext)
+                new_geometry.updateHlayer([newgeomvector[0::3], newgeomvector[1::3], newgeomvector[2::3]])
+                displ_geometries.append(new_geometry)
+
+            # define cobram.command for a single point calculation, with TD-DFT and 5 electronic states
+            cobcomm = CobrammInput(n_el_states=5, qm_basis=qm_basis, qm_functional=td_functional)
+
+            # now run the calculations
+            displ_results = []
+            for i, new_geometry in enumerate(displ_geometries):
+
+                # define name of the directory where to store the sample point
+                path_snap = os.path.join(displ_dir, "sample_{0:04d}".format(i))
+
+                # run the cobramm optimization and extract the optimized geometry
+                tddftresult = CobrammCalculator.run(cobcomm, new_geometry, modelh_topo, real_topo,
+                                                    calc_dir=path_snap, store=True)
+                displ_results.append(tddftresult)
+
+            # compute grid for absorption spectrum
+            grid_e = np.linspace(0.1 / constants.Hartree2eV, 20. / constants.Hartree2eV, 1000)
+            # compute and accumulate spectrum
+            spectrum_e = np.array([0.0] * len(grid_e))
+            for tddftresult in displ_results:
+                spectrum_e += tddftresult.eletronicspectrum(grid_e, width=0.1 / constants.Hartree2eV)
+            # normalize spectrum by the number of sample TD-DFT calculations
+            spectrum_e /= float(nsamples)
 
         # convert the spectrum to wavelength and store the results
         for en, ints_e in zip(grid_e, spectrum_e):
             wavelength = 10000000. / (en / constants.wavnr2au)
             self.grid.append(wavelength)
             self.spectrum.append(ints_e / wavelength**2)
+
+        file_name = "spectrum_nm.dat"
+        with open(file_name, "w") as f:
+            for wav, ints in zip(self.grid, self.spectrum):
+                f.write("{} {}\n".format(wav, ints))
 
         print("\nCOBRAMM run has been completed!")
 
