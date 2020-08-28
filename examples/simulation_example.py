@@ -1,4 +1,4 @@
-import numpy as np
+
 from osp.core import cobramm
 from osp.wrappers.cobrammwrapper import CobrammSession
 from osp.core.utils import pretty_print
@@ -23,22 +23,22 @@ material.add(cobramm.pressure(scalar_value=1., unit="bar"))
 material.add(cobramm.solvent(commercial_name="water"))
 
 # pretty-print the material so far
+print("\n")
 pretty_print(material)
+print("\n")
 
 # now open a new CobrammSession to execute the simulation
 with CobrammSession() as session:
     wrapper = cobramm.wrapper(session=session)
     material_wrapper = wrapper.add(material, rel=cobramm.has_part)
 
+    # run the simulation
     material_wrapper.session.run()
-#
-#     print("-" * 100)
-#
-#     atom = material_wrapper.get(rel=cobramm.has_part)[0]
-#     print(atom)
-#     atom.get(oclass=cobramm.position)[0].vector_value = [0, 0, 0]
-#     wrapper.session.run()
-#
-#     print("-" * 100)
-#
-#     pretty_print(material_wrapper)
+
+    # extract the spectrum
+    spectrum = material_wrapper.get(oclass=cobramm.spectrum)[0]
+
+    # pretty-print the final spectrum
+    print("\n")
+    pretty_print(spectrum)
+    print("\n")
