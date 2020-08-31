@@ -1,7 +1,6 @@
 import numpy as np
 import sys
 import os
-import copy
 
 # add $COBRAM_PATH/cobramm directory to import COBRAMM modules
 try:
@@ -16,6 +15,7 @@ from cobrammCalculator import CobrammCalculator, CobrammInput
 import constants
 from layers import Layers
 from harmonicSampling import HarmonicSampling
+
 
 class CobrammSimulationEngine:
     """
@@ -38,6 +38,8 @@ class CobrammSimulationEngine:
 
         # initialize Amber wrapper class
         AmberCalculator()
+        # initialize COBRAMM wrapper class
+        CobrammCalculator()
 
         print("COBRAMM Engine instantiated!")
 
@@ -63,7 +65,6 @@ class CobrammSimulationEngine:
 
     def run(self):
         """Call the run command of the engine."""
-        print("Now COBRAMM is running")
 
         # extract lists of atomic labels and coordinates
         atomlabels, atomcoords = [], []
@@ -74,6 +75,10 @@ class CobrammSimulationEngine:
         solv = self.input_setup["solvent"]
         temp = self.input_setup["temperature"]
         prs = self.input_setup["pressure"]
+
+        print("\nNow COBRAMM is running, computing the linear absorption spectrum of the input molecule")
+        print("Solvent: {}".format(solv))
+        print("Temperature: {} K and Pressure: {} bar".format(temp, prs))
 
         # define common parameters that are required to run the simulation
         qm_basis = "sto-3g"
@@ -92,7 +97,7 @@ class CobrammSimulationEngine:
             timestep = 0.002  # time step of the MD run (in ps)
             heatingtime = 5.  # time (in ps) of the thermalization step
             equiltime = 25.  # time (in ps) of the final equilibration step
-            nsamples = 10  # number of samples of the wigner sampling
+            nsamples = 20  # number of samples of the wigner sampling
         elif self.accuracy == 2:
             boxsize = 11.   # size of the MD simulation box, in Ang
             cutoff = 7.  # cutoff for potential evaluation in the MD simulations, in Ang
@@ -102,7 +107,7 @@ class CobrammSimulationEngine:
             timestep = 0.002  # time step of the MD run (in ps)
             heatingtime = 10.  # time (in ps) of the thermalization step
             equiltime = 50.  # time (in ps) of the final equilibration step
-            nsamples = 20  # number of samples of the wigner sampling
+            nsamples = 50  # number of samples of the wigner sampling
         else:
             boxsize = 13.   # size of the MD simulation box, in Ang
             cutoff = 9.  # cutoff for potential evaluation in the MD simulations, in Ang
@@ -122,11 +127,6 @@ class CobrammSimulationEngine:
         _CALC01_PLOT = "optimization.pdf"
         _CALC02_PLOT = "thermalization.pdf"
         _CALC03_PLOT = "equilibration.pdf"
-
-        heatingtime = 1.  # time (in ps) of the thermalization step
-        equiltime = 1.  # time (in ps) of the final equilibration step
-        qmmm_opt_maxsteps = 5
-        nsamples = 5
 
         print("\n * Create AMBER topology and coordinates for a molecule in a box of solvent")
 
@@ -293,9 +293,9 @@ class CobrammSimulationEngine:
             # compute grid for absorption spectrum
             grid_e = np.linspace(0.1 / constants.Hartree2eV, 20. / constants.Hartree2eV, 1000)
             # compute and accumulate spectrum
-            spectrum_e = np.array([0.0] * len(grid_e))
+            spectrum_e = np.zeros(len(grid_e))
             for tddftresult in displ_results:
-                spectrum_e += tddftresult.eletronicspectrum(grid_e, width=0.1 / constants.Hartree2eV)
+                spectrum_e += tddftresult.eletronicspectrum(grid_e, width=0.2 / constants.Hartree2eV)
             # normalize spectrum by the number of sample TD-DFT calculations
             spectrum_e /= float(nsamples)
 
