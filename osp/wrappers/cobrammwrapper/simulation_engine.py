@@ -186,7 +186,7 @@ class CobrammSimulationEngine:
         print("   Plot of the equilibration dynamics written to file {0}".format(_CALC03_PLOT))
 
         # extract final equilibration geometry and write it to file
-        equil_snap = output02.snapshot(-1)
+        equil_snap = output03.snapshot(-1)
 
         print("\n * Extracting a droplet of solvent of radius {0} Ang\n"
               "   with mobile molecules within {1} Ang from the chromophore".format(solvradius, mradius))
