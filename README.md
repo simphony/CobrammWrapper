@@ -4,18 +4,18 @@ SimPhoNy wrapper for the COBRAMM engine developed at UNIBO.
 *Contact:* marco.garavelli@unibo.it (UNIBO)
 
 ## Requirements
-- Install [COBRAMM] version 2.3 (https://gitlab.com/cobrammgroup/cobramm/-/wikis/Installation-Guide) and required software - Amber and Gaussian.  
+- Install [COBRAMM version 2.3](https://gitlab.com/cobrammgroup/cobramm/-/wikis/Installation-Guide) and required software - Amber and Gaussian.  
 - Add the directories of the required tools in the PATH environmental variable
 
 
 ## Compatibility
-The following table describes the version compatibility between the [OSP core](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core) package and documentation presented in this project.
+The following table describes the version compatibility between the [OSP core](https://github.com/simphony/osp-core) package and documentation presented in this project.
 
-| __CobrammWrapper__ | __OSP core__ |
-|:-----------------------:|:------------:|
-|                   |     3.4.0    |
+| __OSP core__ |
+|:------------:|
+|     3.4.0    |
 
-The releases of OSP core are available [here](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/-/releases).
+The releases of OSP core are available [here](https://github.com/simphony/osp-core/releases).
 
 
 ## Description
