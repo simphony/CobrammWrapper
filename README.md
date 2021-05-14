@@ -11,7 +11,7 @@ SimPhoNy wrapper for the COBRAMM engine developed at UNIBO.
 ## Compatibility
 The following table describes the version compatibility between the [OSP core](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core) package and documentation presented in this project.
 
-| __Wrapper development__ | __OSP core__ |
+| __CobrammWrapper__ | __OSP core__ |
 |:-----------------------:|:------------:|
 |                   |     3.4.0    |
 
