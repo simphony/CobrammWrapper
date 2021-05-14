@@ -82,11 +82,8 @@ Line 36: we run the simulation.
 Line 39: we extract the simulated spectrum.
 
 ## How to install
-1.  Clone the wrapper repository.
-``` 
-~$ git clone git@gitlab.cc-asp.fraunhofer.de:simphony/wrappers/comsolwrapper.git
-```
-2. Install the [ontology](https://gitlab.cc-asp.fraunhofer.de/simphony/wrappers/cobrammwrapper/-/blob/master/cobramm.ontology.yml).
+1. Clone the wrapper repository.
+2. Install the ontology.
 ``` 
 ~/comsolwrapper$ pico install cobramm.ontology.yml
 ```
