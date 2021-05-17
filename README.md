@@ -28,7 +28,7 @@ The [QM/MM COBRAMM engine](https://site.unibo.it/cobramm/en) developed at UNIBO 
 An explicit atomistic MM model (Amber force field) is used for the solvent, while an explicit atomistic QM model (DFT/TDDFT) is used for the solvated chromophore. A classical equilibration of the solvent-solute system followed by a QM/MM optimization with Wigner sampling and QM/MM excited state calculations is employed to generate the LA spectrum and its bandshape. Vibrational progressions are not considered at this stage. The wrapper makes available to the user three different schemes of increasing complexity and computational time (Low, Medium, High) that do set parameters for MD simulations (boxsize, cutoff, initial optimization steps, time step of the MD run, heating time, time of the final equilibration steps) and QM/MM simulations (solvent droplet radius, mobile layer radius, number of samples produced in the Wigner sampling) of increasing complexity, accuracy and computational cost. See the wrapper readme file for further info and the workflow details.
 
 ## Workflow
-Molecular structure, solvent, temperature, pressure and accuracy level are currently hard-coded in the wrapper (this info should be provided by the wrapper GUI). This info is employed to run the following workflow:
+Molecular structure, solvent, temperature, pressure are provided as input by the user through the wrapper GUI (while the accuracy level is currently hard-coded in the wrapper). This info is employed to run the following workflow:
 
 1) Solvent-solute MM optimization, thermalization and equilibration dynamics (Amber force field for the solvent and GAFF for the solute) with the charges estimated by the AM1-BCC method from antechamber.
 
