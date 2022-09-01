@@ -1,7 +1,7 @@
 ---
-version: "0.0.3"
+version: "0.0.4"
 namespace: "COBRAMM"
-author: "Matteo Bonfanti"
+author: Matteo Bonfanti, Giorgio La Civita, Marco Garavelli
 
 ontology:
 
@@ -36,15 +36,7 @@ ontology:
     - COBRAMM.HAS_PART:
         range: COBRAMM.MATERIAL
         exclusive: false
-        cardinality: some
-
-  MATERIAL:
-    subclass_of:
-    - CUBA.ENTITY
-    - COBRAMM.HAS_PART:
-        range: COBRAMM.ATOM
-        exclusive: false
-        cardinality: some
+        cardinality: 1
     - COBRAMM.HAS_PART:
         range: COBRAMM.SOLVENT
         exclusive: false
@@ -60,17 +52,25 @@ ontology:
     - COBRAMM.HAS_PART:
         range: COBRAMM.SPECTRUM
         exclusive: false
-        cardinality: many
+        cardinality: some
     - COBRAMM.HAS_PART:
         range: COBRAMM.ACCURACY
         exclusive: false
         cardinality: 1
     - COBRAMM.HAS_PART:
-        range: COBRAMM.CHARGE
+        range: COBRAMM.CASE
         exclusive: false
         cardinality: 1
+
+  MATERIAL:
+    subclass_of:
+    - CUBA.ENTITY
     - COBRAMM.HAS_PART:
-        range: COBRAMM.CASE
+        range: COBRAMM.ATOM
+        exclusive: false
+        cardinality: some
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.CHARGE
         exclusive: false
         cardinality: 1
 
@@ -80,7 +80,7 @@ ontology:
     - COBRAMM.HAS_PART:
         range: COBRAMM.POSITION
         exclusive: false
-        cardinality: some
+        cardinality: 1
     - COBRAMM.HAS_PART:
         range: COBRAMM.ELEMENT_ID
         exclusive: false
@@ -106,21 +106,17 @@ ontology:
     subclass_of:
     - CUBA.ENTITY
     - COBRAMM.HAS_PART:
-        range: COBRAMM.ABSORPTION_VALUE
+        range: COBRAMM.TIME
         exclusive: false
-        cardinality: some
-
-  ABSORPTION_VALUE:
-    subclass_of:
-    - CUBA.ENTITY
+        cardinality: 1
     - COBRAMM.HAS_PART:
         range: COBRAMM.INTENSITY
         exclusive: false
-        cardinality: 1
+        cardinality: some
     - COBRAMM.HAS_PART:
         range: COBRAMM.WAVELENGTH
         exclusive: false
-        cardinality: 1
+        cardinality: some
 
   INTENSITY:
     subclass_of:
