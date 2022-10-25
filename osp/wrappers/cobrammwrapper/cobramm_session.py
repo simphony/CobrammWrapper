@@ -21,7 +21,7 @@ class CobrammSession(SimWrapperSession):
     # OVERRIDE
     def _run(self, root_cuds_object):
         """Call the run command of the engine."""
-        # self._engine.run()
+        self._engine.run()
 
         case = (root_cuds_object.get(oclass=cobramm.case)[0]).case_name
         accuracy = (root_cuds_object.get(oclass=cobramm.accuracy)[0]).accuracy_value
@@ -83,7 +83,6 @@ class CobrammSession(SimWrapperSession):
                             bin.add(cobramm.intensity(scalar_value=ints, unit="arbitrary"))
                             bin.add(cobramm.wavelength(scalar_value=wav, unit="nm"))
 
-
     # OVERRIDE
     def _load_from_backend(self, uids, expired=None):
         """Loads the cuds object from the simulation engine"""
@@ -92,6 +91,60 @@ class CobrammSession(SimWrapperSession):
                 yield self._registry.get(uid)
             else:
                 yield None
+
+        # print("ROOT {}".format(self._registry.get(self.root)))
+        # print("REGISTRY {}".format(self._registry))
+        # print("LEN {}".format(len(self._registry)))
+        # print("UIDS {}".format(uids))
+        # for uid in uids:
+        #     if uid in self._registry:
+        #         obj = self._registry.get(uid)
+        #         root = self._registry.get(self.root)
+
+        #         print(type(obj))
+
+        #         if obj.is_a(cobramm.system):
+        #             print("Found system")
+        #             pretty_print(self._registry.get(self.root))
+        #             print("\n")
+        #             pretty_print(obj)
+        #             spc = self._engine.get_spectrum()
+        #             print("Check OBJ {}".format(obj.get(oclass=cobramm.spectrum)))
+        #             print("Check ROOT {}".format(root.get(oclass=cobramm.spectrum)))
+        #             if obj.get(oclass=cobramm.spectrum):
+        #                 print("Found existing spectrum...removing")
+        #                 obj.remove(oclass=cobramm.spectrum)
+        #             if spc is not None:
+        #                 print("Adding new spectrum")
+        #                 obj.add(cobramm.spectrum())
+
+        #         # if obj.is_a(cobramm.spectrum):
+        #         #     spc = self._engine.get_spectrum()
+        #         #     # print("Found spectrum {} ".format(spc))
+        #         #     # V5
+        #         #     if spc is not None:
+        #         #         # print("Entered {}".format(list(zip(*spc))))
+        #         #         if obj.get(oclass=cobramm.intensity):
+        #         #             obj.remove(oclass=cobramm.intensity)
+        #         #         if obj.get(oclass=cobramm.wavelength):
+        #         #             obj.remove(oclass=cobramm.wavelength)
+        #         #         for wav, ints in zip(*spc):
+        #         #             # print("Adding {} {}".format(wav, ints))
+        #         #             obj.add(cobramm.intensity(scalar_value=ints, unit="arbitrary"))
+        #         #             obj.add(cobramm.wavelength(scalar_value=wav, unit="nm"))
+                       
+        #             #V6
+        #             # if spc is not None:
+        #             #     if obj.get(oclass=cobramm.spectrum_element):
+        #             #         obj.remove(oclass=cobramm.spectrum_element)
+        #             #     for wav, ints in zip(*spc):
+        #             #         value = obj.add(cobramm.spectrum_value())
+        #             #         value.add(cobramm.intensity(scalar_value=ints, unit="arbitrary"))
+        #             #         value.add(cobramm.wavelength(scalar_value=wav, unit="nm"))
+
+        #         yield obj
+        #     else:
+        #         yield None
 
     # OVERRIDE
     def _apply_added(self, root_obj, buffer):

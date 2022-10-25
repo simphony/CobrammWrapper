@@ -16,6 +16,8 @@ from spectronCalculator import readCobrammOut, SpectronCalculator
 import constants
 from layers import Layers
 from harmonicSampling import HarmonicSampling
+from transientCalculator import PumpProbeCalculator, MultiwfnCalculator
+
 
 
 class CobrammSimulationEngine:
@@ -107,6 +109,7 @@ class CobrammSimulationEngine:
         adia_time_step = 10
         PP_sim_time = 250
         PP_time_step = 10
+        tsh_simulation_time = 100
         ###############################################
 
         print("\nNow COBRAMM is running, computing the emission spectrum of the input molecule")
@@ -118,9 +121,9 @@ class CobrammSimulationEngine:
         qm_basis_high = "6-31g*"
         gs_functional = "b3lyp"
         td_functional = "cam-b3lyp"
-        pre_opt_maxsteps = 50     # number of steps of pre-optimisation in S1
-        qmmm_opt1_maxsteps = 50   # number of steps optimisation steps for all the levels of accuracy
-        qmmm_opt2_maxsteps = 50  # number of steps of higher level optimisation for level 2 and 3
+        pre_opt_maxsteps = 25     # number of steps of pre-optimisation in S1
+        qmmm_opt1_maxsteps = 25   # number of steps optimisation steps for all the levels of accuracy
+        qmmm_opt2_maxsteps = 25  # number of steps of higher level optimisation for level 2 and 3
         ## Davide: added new fixed parameters and removed the flexible parameters
         boxsize = 16
         cutoff = 8
@@ -134,6 +137,7 @@ class CobrammSimulationEngine:
         else:
             equiltime = 100
         nsamples = 50
+        ntrj = 5
 
         #state to compute the gradient for in the 3rd user case in Gaussian notation (S1=1, S2=2 ecc)
         ##grad_to_compute = [1, 2]
@@ -457,9 +461,9 @@ class CobrammSimulationEngine:
 
         elif self.case == "transient":
 
-            #run additional optimisation
+                #run additional optimisation
             print("\n * Additional geometry QM/MM optimization, max {1} steps".format(
-                self.accuracy,qmmm_opt2_maxsteps))
+                    self.accuracy,qmmm_opt2_maxsteps))
 
             # define cobram.command for an additional ground state optimization with DFT
             cobcomm = CobrammInput(calc_type="optxg", qm_charge=chrg, qm_basis=qm_basis_high, qm_functional=gs_functional,
@@ -471,89 +475,210 @@ class CobrammSimulationEngine:
 
             opt_geometry_high = optresult.snapshot(-1)
 
-            #compute excited states calculation to get energies and dipoles
-            print("\n * Computing electronic transitions for the optimized geometry\n")
+            if self.accuracy == 1 or self.accuracy == 2:
+
+                #compute excited states calculation to get energies and dipoles
+                print("\n * Computing electronic transitions for the optimized geometry\n")
 
             # define cobram.command for a single point calculation, with TD-DFT and 5 states
-            cobcomm = CobrammInput(n_el_states=5, qm_charge=chrg, qm_basis=qm_basis_high, qm_functional=td_functional, tda=True)
+                cobcomm = CobrammInput(n_el_states=5, qm_charge=chrg, qm_basis=qm_basis_high, qm_functional=td_functional, tda=True)
 
-            CobrammCalculator.run(cobcomm, opt_geometry_high, modelh_topo, real_topo,
+                CobrammCalculator.run(cobcomm, opt_geometry_high, modelh_topo, real_topo,
                                                             calc_dir="tddft", store=True, n_cores=4)
 
-            readCobrammOut(energies=True, en_dir="tddft", es_dipoles=True, tda_dir="tddft").write_files()
+                readCobrammOut(energies=True, en_dir="tddft", es_dipoles=True, tda_dir="tddft").write_files()
 
                 #compute the ground state frequencies
-            print("\n * Computing the normal modes of the molecule at the optimized geometry")
+                print("\n * Computing the normal modes of the molecule at the optimized geometry")
 
                 # redefine M layer as L layer, to freeze atoms in freq calculation
-            standard_text = opt_geometry_high.reallayertext
-            modified_text = ""
-            for line in standard_text.splitlines():
-                if line.split()[5] == "M":
-                    modified_text += line.replace(" M", " L") + "\n"
-                else:
-                    modified_text += line + "\n"
-            frozen_mlayer = Layers.from_real_layers_xyz(modified_text)
+                standard_text = opt_geometry_high.reallayertext
+                modified_text = ""
+                for line in standard_text.splitlines():
+                    if line.split()[5] == "M":
+                        modified_text += line.replace(" M", " L") + "\n"
+                    else:
+                        modified_text += line + "\n"
+                frozen_mlayer = Layers.from_real_layers_xyz(modified_text)
 
                 # define cobram.command for a ground state frequency calculation
-            cobcomm = CobrammInput(calc_type="freqxg", qm_charge=chrg, qm_basis=qm_basis_high, qm_functional=gs_functional)
+                cobcomm = CobrammInput(calc_type="freqxg", qm_charge=chrg, qm_basis=qm_basis_high, qm_functional=gs_functional)
 
            # run COBRAMM
-            CobrammCalculator.run(cobcomm, frozen_mlayer, modelh_topo, real_topo,
+                CobrammCalculator.run(cobcomm, frozen_mlayer, modelh_topo, real_topo,
                                                    calc_dir="frequencies", store=True, n_cores=4)
-            freqfile = (os.path.join("frequencies", "geometry.log"))
+                freqfile = (os.path.join("frequencies", "geometry.log"))
 
 
                 #compute the gradients for n states
-            print("\n * Computing the the gradient for the excited states of interest")
+                print("\n * Computing the the gradient for the excited states of interest")
 
-            gradient_files_string = ""
+                gradient_files_string = ""
             #gradient_files_string = "gradient_S1.txt gradient_S2.txt gradient_S3.txt gradient_S4.txt gradient_S5.txt "
-            for singlet in range(1, 6):
-                cobcomm = CobrammInput(calc_type="optxg", qm_charge=chrg, qm_basis=qm_basis_high, qm_functional=td_functional,
+                for singlet in range(1, 6):
+                    cobcomm = CobrammInput(calc_type="optxg", qm_charge=chrg, qm_basis=qm_basis_high, qm_functional=td_functional,
                                nr_steps=1, n_root=singlet)
-                CobrammCalculator.run(cobcomm, opt_geometry_high, modelh_topo, real_topo,
+                    CobrammCalculator.run(cobcomm, opt_geometry_high, modelh_topo, real_topo,
                                               calc_dir="grad_singlet_{}".format(singlet), store=True, n_cores=4)
 
-                readCobrammOut(gradient=True, grad_dir="grad_singlet_{}".format(singlet)).write_files()
+                    readCobrammOut(gradient=True, grad_dir="grad_singlet_{}".format(singlet)).write_files()
 
-                gradient_files_string += "gradient_S{}.txt ".format(singlet)
+                    gradient_files_string += "gradient_S{}.txt ".format(singlet)
 
             
             # LINEAR ABSORPTION
 
             #run iSPECTRON
-            print("\n * Preparing input files for SPECTRON through iSPECTRON")
+                print("\n * Preparing input files for SPECTRON through iSPECTRON")
 
-            ispectronresult_LA=SpectronCalculator.runiSpectronA(grad_files=gradient_files_string, modes=freqfile, free=6, signal = "LA", tag="iSp")
+                ispectronresult_LA=SpectronCalculator.runiSpectronA(grad_files=gradient_files_string, modes=freqfile, free=6, signal = "LA", tag="iSp")
 
                 # run spectron
-            print("\n * Computing Linear Absorption")
-            SpectronCalculator.runSpectron(ispectronresult_LA)
+                print("\n * Computing Linear Absorption")
+                SpectronCalculator.runSpectron(ispectronresult_LA)
 
-            # ADIABATIC 2D
+            # ADIABATIC PP
 
             #run iSPECTRON
-            print("\n * Computing Time resolved signals")
+                print("\n * Computing Time resolved signals")
 
-            ispectronresult_PP1 = SpectronCalculator.runiSpectronA(grad_files=gradient_files_string, modes=freqfile, free=6, signal="PP", tag="iSp", diagrams="ESA GSB SE", t2=0)
+                ispectronresult_PP1 = SpectronCalculator.runiSpectronA(grad_files=gradient_files_string, modes=freqfile, free=6, signal="PP", tag="iSp", diagrams="ESA GSB SE", t2=0)
 
-            spectronOut = SpectronCalculator.run_pp(inpDir=ispectronresult_PP1, outDir="2D_data_level_1", simulation_time=adia_sim_time, time_step=adia_time_step)
+                spectronOut = SpectronCalculator.run_pp(inpDir=ispectronresult_PP1, outDir="2D_data_level_1", simulation_time=adia_sim_time, time_step=adia_time_step)
 
-            SpectronCalculator.runiSpectronB(spectronOut)
+                SpectronCalculator.runiSpectronB(spectronOut)
             
-            if self.accuracy == 2:
+                if self.accuracy == 2:
                 
-                if initial_state == "bright":
-                    initial_state = readCobrammOut.get_bright_state("tddft/QM_data/qmALL.log")
+                    if initial_state == "bright":
+                        initial_state = readCobrammOut.get_bright_state("tddft/QM_data/qmALL.log")
 
                 #ispectronresult_PP2=SpectronCalculator.runiSpectronA(grad_files=gradient_files_string, modes=freqfile, free=6, signal="PP", tag="_level_2", diagrams="SE", t2=0)
 
-                SpectronCalculator.insert_monoexp_k(ispectronresult_PP1, decay_time=decay, tau=tau, nstates=6, active_state=initial_state, final_state=final_state)
+                    SpectronCalculator.insert_monoexp_k(ispectronresult_PP1, decay_time=decay, tau=tau, nstates=6, active_state=initial_state, final_state=final_state)
                 
-                spectronOut = SpectronCalculator.run_pp(inpDir=ispectronresult_PP1, outDir="2D_data_level_2", simulation_time=PP_sim_time, time_step=PP_time_step)
+                    spectronOut = SpectronCalculator.run_pp(inpDir=ispectronresult_PP1, outDir="2D_data_level_2", simulation_time=PP_sim_time, time_step=PP_time_step)
 
-                SpectronCalculator.runiSpectronB(spectronOut)
+                    SpectronCalculator.runiSpectronB(spectronOut)
+
+
+            if self.accuracy == 3:
+
+            # normal mode computation for the wigner sampling
+                print("\n * Computing the normal modes of the molecule at the optimized geometry")
+
+            # redefine M layer as L layer, to freeze atoms in freq calculation
+                standard_text = opt_geometry_high.reallayertext
+                modified_text = ""
+                for line in standard_text.splitlines():
+                    if line.split()[5] == "M":
+                        modified_text += line.replace(" M", " L") + "\n"
+                    else:
+                        modified_text += line + "\n"
+                frozen_mlayer = Layers.from_real_layers_xyz(modified_text)
+
+            # run COBRAMM
+                cobcomm = CobrammInput(calc_type="freqxg", qm_charge=chrg, qm_basis=qm_basis_high, qm_functional=gs_functional)
+                freqresults = CobrammCalculator.run(cobcomm, frozen_mlayer, modelh_topo, real_topo,
+                                                    calc_dir="frequencies", store=True, n_cores=4)
+
+            # extract equilibrium geometry and format as a simple 1D vector of 3N elements
+                geomvector = []
+                for x, y, z in zip(*frozen_mlayer.model):
+                    geomvector.append(x), geomvector.append(y), geomvector.append(z)
+            # define harmonic sampling of the molecular oscillations
+                mol_oscillator = HarmonicSampling(geomvector, freqresults.coord_masses, freqresults.force_matrix, temp)
+
+            # define directory where to store displaced geometries
+                displ_dir = "sampling"
+            # check the existence of the directory where to store samples, in case create the directory
+                if not os.path.isdir(displ_dir):
+                    os.mkdir(displ_dir)
+
+            # now randomly generate snapshots for subsequent calculations
+                displ_geometries = []
+                for i_geom in range(ntrj):
+                # get sample of the wigner distribution
+                    newgeomvector = mol_oscillator.get_sample()
+                    # create a new Layers object to store the new snapshot, move the H layer and store the snapshot
+                    new_geometry = Layers.from_real_layers_xyz(opt_geometry_high.reallayertext)
+                    new_geometry.updateHlayer([newgeomvector[0::3], newgeomvector[1::3], newgeomvector[2::3]])
+                    displ_geometries.append(new_geometry)
+
+                # now run the calculations
+                displ_results = []
+                for i, new_geometry in enumerate(displ_geometries):
+
+                    # define name of the directory where to store the sample point
+                    path_snap = os.path.join(displ_dir, "sample_{0:04d}".format(i))
+                    top_dir=os.getcwd()
+                    if not os.path.isdir(path_snap):
+                        os.mkdir(path_snap)
+                    os.chdir(path_snap)
+
+                    # vertical excitation and tsh
+
+                    cobcommVE = CobrammInput(n_el_states=5, qm_charge=chrg, qm_basis=qm_basis_high,
+                                             qm_functional=td_functional, tda=True)
+
+                    CobrammCalculator.run(cobcommVE, opt_geometry_high, modelh_topo, real_topo,
+                                          calc_dir="VE", store=True, n_cores=4)
+
+                    readCobrammOut(energies=True, en_dir="VE", es_dipoles=True, tda_dir="VE").write_files()
+
+                    initial_state = readCobrammOut.get_bright_state("VE/QM_data/qmALL.log")
+
+                    # define cobram.command for a tsh
+                    cobcommTSH = CobrammInput(calc_type="tsh", n_el_states=5, qm_charge=chrg, qm_basis=qm_basis_high,
+                                              qm_functional=td_functional, nr_steps=200, n_root=initial_state)
+
+                    CobrammCalculator.run(cobcommTSH, opt_geometry_high, modelh_topo, real_topo,
+                                          calc_dir="TSH", store=True, n_cores=4)
+
+                    os.chdir(top_dir)
+
+                trj_folders = []
+                for trj in range(ntrj):
+                    trj_folders.append("sample_{0:04d}/TSH".format(trj))
+
+                pp = PumpProbeCalculator(trjdir_list=trj_folders, simulation_time=100, delta_t=10, nstates=20)
+                upper_dir = os.getcwd()
+                print("\nSetting up vertical excitations with a time step of {} fs\n".format(pp.delta_t))
+                os.chdir("sampling")
+                sampling_dir = os.getcwd()
+                # setup and run single point calculations
+                for folder in trj_folders:
+
+                    print("\nEntering in the trajectory folder : {}".format(folder)) #sample_{0:04d}\n".format(folder))
+
+                    os.chdir("{}".format(folder))
+                    pp.setup_vertical_excitations(ncores=4, basis_set=qm_basis_high)
+
+                    os.chdir(sampling_dir)
+
+                os.chdir(sampling_dir)
+
+                pp = PumpProbeCalculator(simulation_time=100, delta_t=10, nstates=20,
+                                 trjdir_list=trj_folders, en_min=0.01, en_max=10.0,
+                                 en_width=0.3, t_width=0.3)
+
+                print("Convolution of the spectra for each time\n")
+
+                all_init_tdm = pp.extract_init_tdm()
+
+                for step in range(0, pp.nsteps + 1, pp.delta):
+                    t = step * pp.time_step
+
+                    print("Convolution of the spectrum for time {}\n".format(t))
+
+                    collected_values = pp.collect_values_single_time(nstep=step, all_init_tdm=all_init_tdm)
+                    pp.get_spectrum_single_time_all_traj(values=collected_values, currtime=t)
+
+                os.chdir(upper_dir)
+
+                print("Convulationg the final pump-probe spectrum")
+
+                pp.time_convolution(output="spectrumPP.txt")
 
 
         print("\nCOBRAMM run has been completed!")
