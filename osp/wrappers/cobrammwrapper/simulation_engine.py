@@ -12,11 +12,12 @@ except KeyError:
 
 from amberCalculator import AmberCalculator, AmberInput
 from cobrammCalculator import CobrammCalculator, CobrammInput, CobrammOutput
-from spectronCalculator import readCobrammOut, SpectronCalculator
+# from spectronCalculator import readCobrammOut, SpectronCalculator
 import constants
 from layers import Layers
 from harmonicSampling import HarmonicSampling
-from transientCalculator import PumpProbeCalculator, MultiwfnCalculator
+# from transientCalculator import PumpProbeCalculator, MultiwfnCalculator
+from transientCalculator import PumpProbeCalculator, MultiwfnCalculator, readCobrammOut, SpectronCalculator
 
 
 
@@ -115,7 +116,7 @@ class CobrammSimulationEngine:
         print("\nNow COBRAMM is running, computing the emission spectrum of the input molecule")
         print("Solvent: {}".format(solv))
         print("Temperature: {} K and Pressure: {} bar".format(temp, prs))
-
+        
         # define common parameters that are required to run the simulation
         qm_basis_low = "3-21g"
         qm_basis_high = "6-31g*"
