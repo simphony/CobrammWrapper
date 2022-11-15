@@ -91,3 +91,24 @@ Line 39: we extract the simulated spectrum.
 ``` 
 ~/comsolwrapper$ python setup.py install 
 ```
+
+## How to test
+After the installation
+1. Go inside the tests folder
+2. Execute the command
+
+```python
+python -m unittest
+```
+
+The suite is composed of three different tests, it will takes approximately 1 hour to run them all. If you prefer you can just run one of them by specifying the name of the file.
+
+```python
+python -m unittest test_engine.py
+```
+
+### Structure of the tests
+The suite is composed of three different tests
+* **test_end_to_end**: It is intended to test the end to end interaction between application, wrapper and the simulation engine.
+* **test_session**: It comprises both integrations tests related to the interaction with the simulation engine and unit tests of single methods (part of the wrapper API).
+* **test_engine**: This test suite is intended to unit test the simulation engine.
