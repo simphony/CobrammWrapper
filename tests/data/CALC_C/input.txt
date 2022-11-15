@@ -1,0 +1,1 @@
+emission 2 250 1 water 0 /home/gianluca/testing_folder/molecule_dummy.txt
