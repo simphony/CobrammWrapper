@@ -1,50 +1,75 @@
 ---
-version: "0.0.3"
+version: "1.0.0"
 namespace: "COBRAMM"
-author: "Matteo Bonfanti"
+author: Matteo Bonfanti, Giorgio La Civita, Marco Garavelli
 
 ontology:
 
-  ################
-
-  ENCLOSES:
-    subclass_of:
-    - CUBA.ACTIVE_RELATIONSHIP
-    inverse: COBRAMM.IS_ENCLOSED_BY
-
-  IS_ENCLOSED_BY:
-    subclass_of:
-    - CUBA.PASSIVE_RELATIONSHIP
-    inverse: COBRAMM.ENCLOSES
+  ################ RELATIONSHIPS
 
   HAS_PART:
     subclass_of:
-    - COBRAMM.ENCLOSES
+    - CUBA.ACTIVE_RELATIONSHIP
     inverse: COBRAMM.IS_PART_OF
     default_rel: true
 
   IS_PART_OF:
     subclass_of:
-    - COBRAMM.IS_ENCLOSED_BY
+    - CUBA.PASSIVE_RELATIONSHIP
     inverse: COBRAMM.HAS_PART
 
-  ##############
+  HAS_PROPERTY:
+    subclass_of:
+    - CUBA.ACTIVE_RELATIONSHIP
+    inverse: COBRAMM.IS_PROPERTY_OF
+    default_rel: false
+    
+  IS_PROPERTY_OF:
+    subclass_of:
+    - CUBA.PASSIVE_RELATIONSHIP
+    inverse: COBRAMM.HAS_PROPERTY
+
+  ############## ENTITIES
 
   WRAPPER:
     subclass_of:
     - CUBA.WRAPPER
     - COBRAMM.HAS_PART:
-        range: COBRAMM.MATERIAL
+        range: COBRAMM.SYSTEM
         exclusive: false
-        cardinality: some
+        cardinality: 1
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.ACCURACY
+        exclusive: false
+        cardinality: 1
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.CASE
+        exclusive: false
+        cardinality: 1
 
-  MATERIAL:
+  CASE:
+    subclass_of:
+      - CUBA.ENTITY
+    attributes:
+      COBRAMM.CASE_NAME:
+
+  ACCURACY:
+    subclass_of:
+      - CUBA.ENTITY
+    attributes:
+      COBRAMM.ACCURACY_VALUE:
+
+  SYSTEM:
     subclass_of:
     - CUBA.ENTITY
     - COBRAMM.HAS_PART:
-        range: COBRAMM.ATOM
+        range: COBRAMM.COBRAMM_STATE
         exclusive: false
-        cardinality: some
+        cardinality: 1
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.MATERIAL
+        exclusive: false
+        cardinality: 1
     - COBRAMM.HAS_PART:
         range: COBRAMM.SOLVENT
         exclusive: false
@@ -60,59 +85,51 @@ ontology:
     - COBRAMM.HAS_PART:
         range: COBRAMM.SPECTRUM
         exclusive: false
-        cardinality: many
+        cardinality: some
     - COBRAMM.HAS_PART:
-        range: COBRAMM.ACCURACY
+        range: COBRAMM.ENERGY
         exclusive: false
-        cardinality: 1
+        cardinality: some
+
+  MATERIAL:
+    subclass_of:
+    - COBRAMM.SYSTEM
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.ATOM
+        exclusive: false
+        cardinality: some
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.POINT_CHARGE
+        exclusive: false
+        cardinality: some
     - COBRAMM.HAS_PART:
         range: COBRAMM.CHARGE
         exclusive: false
         cardinality: 1
-    - COBRAMM.HAS_PART:
-        range: COBRAMM.CASE
-        exclusive: false
-        cardinality: 1
-
-  ATOM:
-    subclass_of:
-    - CUBA.ENTITY
-    - COBRAMM.HAS_PART:
-        range: COBRAMM.POSITION
-        exclusive: false
-        cardinality: some
-    - COBRAMM.HAS_PART:
-        range: COBRAMM.ELEMENT_ID
-        exclusive: false
-        cardinality: 1
-
-  POSITION:
-    subclass_of:
-    - COBRAMM.PHYSICAL_VECTOR_QUANTITY
 
   SOLVENT:
     subclass_of:
-    - COBRAMM.MOLECULE
-
-  TEMPERATURE:
-    subclass_of:
-    - COBRAMM.PHYSICAL_SCALAR_QUANTITY
-
-  PRESSURE:
-    subclass_of:
-    - COBRAMM.PHYSICAL_SCALAR_QUANTITY
+    - COBRAMM.SYSTEM
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.MOLECULE
+        exclusive: false
+        cardinality: 1
 
   SPECTRUM:
     subclass_of:
-    - CUBA.ENTITY
+    - COBRAMM.SYSTEM
     - COBRAMM.HAS_PART:
-        range: COBRAMM.ABSORPTION_VALUE
+        range: COBRAMM.BIN
         exclusive: false
         cardinality: some
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.TIME
+        exclusive: false
+        cardinality: 1
 
-  ABSORPTION_VALUE:
+  BIN:
     subclass_of:
-    - CUBA.ENTITY
+    - COBRAMM.SPECTRUM
     - COBRAMM.HAS_PART:
         range: COBRAMM.INTENSITY
         exclusive: false
@@ -122,15 +139,61 @@ ontology:
         exclusive: false
         cardinality: 1
 
-  INTENSITY:
+  ATOM:
     subclass_of:
-    - COBRAMM.PHYSICAL_SCALAR_QUANTITY
+    - COBRAMM.MATERIAL
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.POSITION
+        exclusive: false
+        cardinality: 1
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.ELEMENT_ID
+        exclusive: false
+        cardinality: 1
 
-  WAVELENGTH:
+  POINT_CHARGE:
     subclass_of:
-    - COBRAMM.PHYSICAL_SCALAR_QUANTITY
+    - COBRAMM.MATERIAL
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.POSITION
+        exclusive: false
+        cardinality: 1
+    - COBRAMM.HAS_PART:
+        range: COBRAMM.FLOAT_CHARGE
+        exclusive: false
+        cardinality: 1
 
-  ##############
+  COBRAMM_STATE:
+    subclass_of:
+    - COBRAMM.SYSTEM
+    attributes:
+      COBRAMM.PATH:
+
+  MOLECULE:
+    subclass_of:
+      - COBRAMM.SOLVENT
+    attributes:
+      COBRAMM.COMMERCIAL_NAME:
+
+  CHARGE:
+    subclass_of:
+      - COBRAMM.MATERIAL
+    attributes:
+      COBRAMM.INTEGER_VALUE:
+
+  FLOAT_CHARGE:
+    subclass_of:
+      - COBRAMM.MATERIAL
+    attributes:
+      COBRAMM.SCALAR_VALUE:
+
+  ELEMENT_ID:
+    subclass_of:
+      - COBRAMM.ATOM
+    attributes:
+      COBRAMM.ATOM_SYMBOL:
+
+  ############## QUANTITIES
 
   PHYSICAL_VECTOR_QUANTITY:
     subclass_of:
@@ -146,37 +209,35 @@ ontology:
       COBRAMM.SCALAR_VALUE:
       COBRAMM.UNIT:
 
-  MOLECULE:
+  POSITION:
     subclass_of:
-      - CUBA.ENTITY
-    attributes:
-      COBRAMM.COMMERCIAL_NAME:
+    - COBRAMM.PHYSICAL_VECTOR_QUANTITY
 
-  ELEMENT_ID:
+  TIME:
     subclass_of:
-      - CUBA.ENTITY
-    attributes:
-      COBRAMM.ATOM_SYMBOL:
+    - COBRAMM.PHYSICAL_SCALAR_QUANTITY
 
-  ACCURACY:
+  TEMPERATURE:
     subclass_of:
-      - CUBA.ENTITY
-    attributes:
-      COBRAMM.ACCURACY_VALUE:
+    - COBRAMM.PHYSICAL_SCALAR_QUANTITY
 
-  CHARGE:
+  PRESSURE:
     subclass_of:
-      - CUBA.ENTITY
-    attributes:
-      COBRAMM.CHARGE_VALUE:
-    
-  CASE:
-    subclass_of:
-      - CUBA.ENTITY
-    attributes:
-      COBRAMM.CASE_NAME:
+    - COBRAMM.PHYSICAL_SCALAR_QUANTITY
 
-  ##############
+  INTENSITY:
+    subclass_of:
+    - COBRAMM.PHYSICAL_SCALAR_QUANTITY
+
+  WAVELENGTH:
+    subclass_of:
+    - COBRAMM.PHYSICAL_SCALAR_QUANTITY
+
+  ENERGY:
+    subclass_of:
+    - COBRAMM.PHYSICAL_SCALAR_QUANTITY
+
+  ############## ATTRIBUTES
 
   VECTOR_VALUE:
     subclass_of:
@@ -188,32 +249,42 @@ ontology:
     - CUBA.ATTRIBUTE
     datatype: FLOAT
 
-  UNIT:
+  INTEGER_VALUE:
     subclass_of:
     - CUBA.ATTRIBUTE
+    datatype: INT
+
+  STRING_VALUE:
+    subclass_of:
+    - CUBA.ATTRIBUTE
+    datatype: STRING
+
+  PATH:
+    subclass_of:
+    - COBRAMM.STRING_VALUE
+    datatype: STRING
+
+  UNIT:
+    subclass_of:
+    - COBRAMM.STRING_VALUE
     datatype: STRING
 
   ATOM_SYMBOL:
     subclass_of:
-    - CUBA.ATTRIBUTE
+    - COBRAMM.STRING_VALUE
     datatype: STRING
 
   COMMERCIAL_NAME:
     subclass_of:
-    - CUBA.ATTRIBUTE
+    - COBRAMM.STRING_VALUE
     datatype: STRING
 
   ACCURACY_VALUE:
     subclass_of:
-    - CUBA.ATTRIBUTE
-    datatype: INT
-
-  CHARGE_VALUE:
-    subclass_of:
-    - CUBA.ATTRIBUTE
+    - COBRAMM.INTEGER_VALUE
     datatype: INT
 
   CASE_NAME:
     subclass_of:
-    - CUBA.ATTRIBUTE
+    - COBRAMM.STRING_VALUE
     datatype: STRING
