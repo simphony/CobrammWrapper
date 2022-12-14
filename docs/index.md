@@ -17,5 +17,5 @@
 installation
 usage
 development
-License <https://gitlab.cc-asp.fraunhofer.de/simphony/wrappers/cobrammwrapper/-/blob/master/LICENSE>
+License <https://github.com/simphony/CobrammWrapper/blob/master/LICENSE>
 ```
